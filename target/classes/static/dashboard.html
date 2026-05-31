@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlacementPrep - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <nav class="sidebar p-4 d-flex flex-column" style="width: 250px;">
+            <h4 class="text-white mb-5"><i class="fas fa-graduation-cap text-primary me-2"></i> PrepAI</h4>
+            
+            <a href="dashboard.html" class="nav-link active py-2 px-3"><i class="fas fa-home me-2"></i> Dashboard</a>
+            <a href="resume.html" class="nav-link py-2 px-3"><i class="fas fa-file-alt me-2"></i> Resume Analyzer</a>
+            <a href="interview.html" class="nav-link py-2 px-3"><i class="fas fa-comments me-2"></i> AI Interview</a>
+            <a href="coding.html" class="nav-link py-2 px-3"><i class="fas fa-code me-2"></i> Practice Code</a>
+            <a href="jobs.html" class="nav-link py-2 px-3"><i class="fas fa-briefcase me-2"></i> Find Jobs</a>
+            <a href="github.html" class="nav-link py-2 px-3"><i class="fab fa-github me-2"></i> GitHub Insights</a>
+            
+            <div class="mt-auto">
+                <hr class="text-secondary">
+                <button onclick="logout()" class="btn btn-outline-danger w-100"><i class="fas fa-sign-out-alt me-2"></i> Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-grow-1 p-5 overflow-auto shadow-inner" style="height: 100vh;">
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <h2 class="fw-bold m-0" id="welcomeText">Welcome back!</h2>
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;" id="avatar">U</div>
+                    <span id="userName" class="fw-semibold">User</span>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="glass-card stat-card text-center">
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">ATS Score</p>
+                        <h3 id="atsScore">0</h3>
+                        <p class="text-success small mb-0"><i class="fas fa-arrow-up"></i> Top 10%</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="glass-card stat-card text-center">
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">Interviews Taken</p>
+                        <h3 id="interviewsCount">0</h3>
+                        <p class="text-info small mb-0"><i class="fas fa-chart-line"></i> Solid Progress</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="glass-card stat-card text-center">
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">Code Submissions</p>
+                        <h3 id="codingCount" style="background: linear-gradient(135deg, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0</h3>
+                        <p class="text-warning small mb-0"><i class="fas fa-fire"></i> Keep Going</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="glass-card stat-card text-center">
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">Saved Jobs</p>
+                        <h3 id="jobsCount" style="background: linear-gradient(135deg, #34d399, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0</h3>
+                        <p class="text-success small mb-0"><i class="fas fa-check-circle"></i> Ready to apply</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+               <div class="col-md-8">
+                   <div class="glass-card h-100">
+                       <h5 class="fw-bold mb-4">Your Recent Activity</h5>
+                       <div class="text-muted text-center py-5">
+                            <i class="fas fa-chart-pie fa-3x mb-3 text-secondary" style="opacity: 0.5;"></i>
+                            <p>Activity timeline will appear here.</p>
+                       </div>
+                   </div>
+               </div>
+               <div class="col-md-4">
+                   <div class="glass-card h-100 placeholder-glow">
+                       <h5 class="fw-bold mb-4">GitHub Spotlight</h5>
+                       <div id="githubWidget" class="text-center text-muted py-4">
+                           <i class="fab fa-github fa-3x mb-3" style="opacity:0.5"></i>
+                           <p>Connect your GitHub account to see insights.</p>
+                           <a href="github.html" class="btn btn-sm btn-outline-info">Analyze Now</a>
+                       </div>
+                   </div>
+               </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if(!token) {
+                window.location.href = '/index.html';
+            }
+        }
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/index.html';
+        }
+        
+        async function loadDashboard() {
+            checkAuth();
+            const user = JSON.parse(localStorage.getItem('user'));
+            document.getElementById('userName').innerText = user.name;
+            document.getElementById('avatar').innerText = user.name.charAt(0).toUpperCase();
+            document.getElementById('welcomeText').innerText = `Welcome back, ${user.name.split(' ')[0]}!`;
+            
+            try {
+                const res = await fetch('/api/dashboard', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    document.getElementById('atsScore').innerText = data.bestResumeScore || 0;
+                    document.getElementById('interviewsCount').innerText = data.totalInterviews || 0;
+                    document.getElementById('codingCount').innerText = data.codingProblemsSolved || 0;
+                    document.getElementById('jobsCount').innerText = data.savedJobsCount || 0;
+                    
+                    if(data.githubProfile) {
+                        document.getElementById('githubWidget').innerHTML = `
+                            <h4 class='text-white mt-3 text-break'>@${data.githubProfile.githubUsername}</h4>
+                            <p class='mb-1'>Repositories: <span class='text-info fw-bold'>${data.githubProfile.repositories}</span></p>
+                            <p>Top Language: <span class='text-warning fw-bold'>${data.githubProfile.topLanguage}</span></p>
+                            <a href='github.html' class='btn btn-sm btn-outline-info mt-3'>View More</a>
+                        `;
+                    }
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+        
+        loadDashboard();
+    </script>
+</body>
+</html>
