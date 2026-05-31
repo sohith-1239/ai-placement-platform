@@ -53,11 +53,9 @@ public class InterviewController {
         String aiResponse = geminiService.generateContent(prompt);
         
         int score = 60;
-        if(aiResponse.contains("\"score\"")) {
-            try {
-                String scoreStr = aiResponse.split("\"score\"")[1].split("[:,]")[1].trim().replaceAll("[^0-9]", "");
-                score = Integer.parseInt(scoreStr);
-            } catch(Exception e) {}
+        java.util.regex.Matcher scoreMatcher = java.util.regex.Pattern.compile("\"score\"\\s*:\\s*(\\d+)").matcher(aiResponse);
+        if (scoreMatcher.find()) {
+            try { score = Integer.parseInt(scoreMatcher.group(1)); } catch(Exception e) {}
         }
         
         Interview interview = new Interview(user, role, score, aiResponse);

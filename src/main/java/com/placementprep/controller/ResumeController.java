@@ -49,11 +49,9 @@ public class ResumeController {
             }
             
             int score = 75;
-            if(jsonStr.contains("\"score\"")) {
-                try {
-                    String scoreStr = jsonStr.split("\"score\"")[1].split("[:,]")[1].trim().replaceAll("[^0-9]", "");
-                    score = Integer.parseInt(scoreStr);
-                } catch(Exception e) {}
+            java.util.regex.Matcher scoreMatcher = java.util.regex.Pattern.compile("\"score\"\\s*:\\s*(\\d+)").matcher(jsonStr);
+            if (scoreMatcher.find()) {
+                try { score = Integer.parseInt(scoreMatcher.group(1)); } catch(Exception e) {}
             }
             
             Resume resume = new Resume(user, "local_mock_url", score, aiResponse);
