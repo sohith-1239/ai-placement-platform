@@ -109,37 +109,108 @@
         
         async function loadDashboard() {
             checkAuth();
-            const user = JSON.parse(localStorage.getItem('user'));
-            document.getElementById('userName').innerText = user.name;
-            document.getElementById('avatar').innerText = user.name.charAt(0).toUpperCase();
-            document.getElementById('welcomeText').innerText = `Welcome back, ${user.name.split(' ')[0]}!`;
-            
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            let user;
             try {
+                user = JSON.parse(userStr);
+            } catch (err) {
+                console.error('Invalid user in localStorage', err);
+                window.location.href = '/index.html';
+                return;
+            }
+
+            const userNameEl = document.getElementById('userName');
+            const avatarEl = document.getElementById('avatar');
+            const welcomeEl = document.getElementById('welcomeText');
+
+            if (userNameEl) userNameEl.innerText = user.name || 'User';
+            if (avatarEl) avatarEl.innerText = (user.name && user.name.charAt) ? user.name.charAt(0).toUpperCase() : 'U';
+            if (welcomeEl) welcomeEl.innerText = `Welcome back, ${(user.name || 'User').split(' ')[0]}!`;
+
+            try {
+                // Quick mock mode for UI testing without backend: ?mock=true
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('mock') === 'true') {
+                    const mockData = {
+                        bestResumeScore: 85,
+                        totalInterviews: 4,
+                        codingProblemsSolved: 12,
+                        savedJobsCount: 3,
+                        githubProfile: { githubUsername: 'demo', repositories: 8, topLanguage: 'Java' }
+                    };
+                    document.getElementById('atsScore').innerText = mockData.bestResumeScore;
+                    document.getElementById('interviewsCount').innerText = mockData.totalInterviews;
+                    document.getElementById('codingCount').innerText = mockData.codingProblemsSolved;
+                    document.getElementById('jobsCount').innerText = mockData.savedJobsCount;
+                    const wp = document.getElementById('githubWidget');
+                    if (wp) wp.innerHTML = `
+                        <h4 class='text-white mt-3 text-break'>@${mockData.githubProfile.githubUsername}</h4>
+                        <p class='mb-1'>Repositories: <span class='text-info fw-bold'>${mockData.githubProfile.repositories}</span></p>
+                        <p>Top Language: <span class='text-warning fw-bold'>${mockData.githubProfile.topLanguage}</span></p>
+                        <a href='github.html' class='btn btn-sm btn-outline-info mt-3'>View More</a>
+                    `;
+                    return;
+                }
+                const token = localStorage.getItem('token');
                 const res = await fetch('/api/dashboard', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
-                if(res.ok) {
+                if (res.ok) {
                     const data = await res.json();
-                    document.getElementById('atsScore').innerText = data.bestResumeScore || 0;
-                    document.getElementById('interviewsCount').innerText = data.totalInterviews || 0;
-                    document.getElementById('codingCount').innerText = data.codingProblemsSolved || 0;
-                    document.getElementById('jobsCount').innerText = data.savedJobsCount || 0;
-                    
-                    if(data.githubProfile) {
-                        document.getElementById('githubWidget').innerHTML = `
+                    const ats = document.getElementById('atsScore');
+                    const interviews = document.getElementById('interviewsCount');
+                    const coding = document.getElementById('codingCount');
+                    const jobs = document.getElementById('jobsCount');
+
+                    if (ats) ats.innerText = data?.bestResumeScore ?? 0;
+                    if (interviews) interviews.innerText = data?.totalInterviews ?? 0;
+                    if (coding) coding.innerText = data?.codingProblemsSolved ?? 0;
+                    if (jobs) jobs.innerText = data?.savedJobsCount ?? 0;
+
+                    if (data?.githubProfile) {
+                        const wp = document.getElementById('githubWidget');
+                        if (wp) wp.innerHTML = `
                             <h4 class='text-white mt-3 text-break'>@${data.githubProfile.githubUsername}</h4>
                             <p class='mb-1'>Repositories: <span class='text-info fw-bold'>${data.githubProfile.repositories}</span></p>
                             <p>Top Language: <span class='text-warning fw-bold'>${data.githubProfile.topLanguage}</span></p>
                             <a href='github.html' class='btn btn-sm btn-outline-info mt-3'>View More</a>
                         `;
                     }
+                } else {
+                    console.warn('Dashboard API returned', res.status);
+                    if (res.status === 401) {
+                        // Not authenticated or token expired - force logout and redirect
+                        logout();
+                        return;
+                    }
+
+                    const main = document.querySelector('.flex-grow-1');
+                    if (main) {
+                        main.innerHTML = `<div class="p-5 text-center text-danger">Failed to load dashboard (status: ${res.status}). Check console for details.</div>`;
+                    }
                 }
-            } catch(e) {
+            } catch (e) {
                 console.error(e);
             }
         }
         
-        loadDashboard();
+        // Ensure DOM is ready before running
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                loadDashboard();
+            } catch (err) {
+                console.error('Error initializing dashboard', err);
+                const main = document.querySelector('.flex-grow-1');
+                if (main) {
+                    main.innerHTML = `<div class="p-5 text-center text-danger">Failed to load dashboard. Check console for details.</div>`;
+                }
+            }
+        });
     </script>
 </body>
 </html>
